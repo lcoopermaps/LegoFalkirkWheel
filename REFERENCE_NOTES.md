@@ -63,3 +63,19 @@ Paraphrased orientation used:
 The exact coordinates, room dimensions, furniture scale, forest density, jetty shape, distant Fillyjonk house exterior, NPC dialogue, map proportions and NPC routes are original implementation choices made for playability.
 
 The prototype also intentionally avoids reproducing any copyrighted illustration, episode frame, book passage, exact production model or texture.
+
+## Additional official orientation used in the continuation pass
+
+**Official Moomin Shop — A Year in the Moominhouse**  
+https://shop.moomin.com/products/a-year-in-the-moominhouse
+
+Paraphrased orientation used:
+- Too-Ticky is associated with keeping warm in the bathhouse during winter.
+
+**Official Moomin Shop — Fillyjonk collection**  
+https://shop.moomin.com/collections/fillyjonk
+
+Paraphrased orientation used:
+- Mrs Fillyjonk strongly values order, routine and a meticulously kept home.
+
+The bathhouse coordinates, bathhouse geometry, Fillyjonk interior layout, all dialogue and all furniture placement added in this continuation pass are original implementation choices. They are not reproductions of a specific illustration or adaptation set.
