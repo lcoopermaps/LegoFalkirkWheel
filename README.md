@@ -28,11 +28,11 @@ Touch controls appear on coarse-pointer/mobile devices.
 
 ## Included in the first playable release
 
-The exterior world contains the tall round Moominhouse, its garden and well, the stream and wooden bridge, Snufkin's tent and campfire, woods, a beach and jetty, a distant Fillyjonk house, the Lonely Mountains and a cave route.
+The exterior world contains the tall round Moominhouse, its garden and well, the stream and wooden bridge, Snufkin's tent and campfire, woods, a beach and jetty, Too-Ticky's bathhouse area, an explorable Fillyjonk house, the Lonely Mountains and a cave route.
 
-The house is explorable room by room through a separate interior pocket-world: salon, dining room, kitchen, cellar, second-floor landing, parents' bedroom, adult guest room, children's bunk room, third-floor landing, Moominpappa's study, upper guest room, reading room and Moomintroll's roof room.
+The Moominhouse is explorable room by room through a separate interior pocket-world: salon, dining room, kitchen, cellar, second-floor landing, parents' bedroom, adult guest room, children's bunk room, third-floor landing, Moominpappa's study, upper guest room, reading room and Moomintroll's roof room. Fillyjonk's house and the bathhouse also have small original interiors that can be entered.
 
-Residents wander on their own routes and can be spoken to. The current cast is Moomintroll, Moominmamma, Moominpappa, Little My, Sniff, Snorkmaiden, Snufkin and Hemulen.
+Residents wander on their own routes and can be spoken to. The current cast is Moomintroll, Moominmamma, Moominpappa, Little My, Sniff, Snorkmaiden, Snufkin, Hemulen, Too-Ticky and Mrs Fillyjonk.
 
 Sniff has special behavior: he sometimes reverses direction while running, steals nearby shiny trinkets, and later drops them. The Groke follows a long route through the wild parts of the valley and leaves temporary frozen ground behind her. A nearby-Groke screen effect and moving water/fire can be disabled with reduced-motion mode.
 
@@ -66,3 +66,8 @@ First playable build commit: `1b0e684c37fbf59d0fe68d65c1020936edf5cd1f`.
 ## Live deployment
 
 A GitHub Pages workflow is included at `.github/workflows/pages.yml`. Once Pages is enabled with **Settings → Pages → Source: GitHub Actions**, every push to `main` publishes this static site.
+
+
+## Continuation checkpoint
+
+The October 5 continuation pass verified the first playable build, added Too-Ticky and the bathhouse, made Fillyjonk's house enterable, added Mrs Fillyjonk as a resident, and syntax-checked the complete module. GitHub Pages still requires the repository's one-time Pages setting to be enabled before the deployment workflow can publish successfully.
