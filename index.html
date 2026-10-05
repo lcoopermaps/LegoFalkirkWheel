@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#dcebd2" />
+  <title>Moominvalley Explorer — procedural fan prototype</title>
+  <style>
+    :root{--ink:#18302a;--paper:#f8f4e8;--leaf:#55795c;--blue:#8eb7c9;--accent:#b14f47;--gold:#d3a547;--glass:rgba(248,244,232,.88)}
+    *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#b9d5d8;color:var(--ink);font-family:Georgia,"Times New Roman",serif}
+    canvas{display:block;width:100%;height:100%}.hidden{display:none!important}
+    #hud{position:fixed;inset:0;pointer-events:none;z-index:4}
+    #topbar{position:absolute;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);min-width:min(92vw,720px);padding:10px 14px;border:1px solid rgba(24,48,42,.25);border-radius:14px;background:var(--glass);backdrop-filter:blur(10px);box-shadow:0 10px 28px rgba(24,48,42,.12);text-align:center}
+    #topbar strong{letter-spacing:.04em}#topbar small{display:block;opacity:.74;margin-top:2px}
+    #crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);opacity:.55}
+    #crosshair:before,#crosshair:after{content:"";position:absolute;background:var(--ink);border-radius:3px}#crosshair:before{width:18px;height:2px;top:8px;left:0}#crosshair:after{width:2px;height:18px;left:8px;top:0}
+    #prompt{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);max-width:min(88vw,640px);padding:10px 14px;border-radius:12px;background:rgba(24,48,42,.88);color:#fff;text-align:center;font:600 14px/1.3 system-ui,sans-serif;opacity:0;transition:opacity .18s}
+    #prompt.show{opacity:1}
+    #toast{position:absolute;right:16px;top:88px;width:min(340px,80vw);display:grid;gap:8px}
+    .toast{padding:10px 12px;border-radius:12px;background:var(--glass);border:1px solid rgba(24,48,42,.2);box-shadow:0 8px 20px rgba(24,48,42,.12);font:13px/1.35 system-ui,sans-serif;animation:pop .25s ease-out}
+    @keyframes pop{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+    #start{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(245,243,222,.68),rgba(94,130,111,.82)),linear-gradient(#a7cfd2,#7da276)}
+    .card{pointer-events:auto;width:min(760px,92vw);max-height:90vh;overflow:auto;padding:28px;border-radius:24px;background:rgba(250,247,238,.95);border:1px solid rgba(24,48,42,.22);box-shadow:0 24px 80px rgba(24,48,42,.25)}
+    .card h1{font-size:clamp(30px,6vw,58px);line-height:.95;margin:0 0 10px;font-weight:500}.card p{line-height:1.52}.card .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:18px 0;font:14px/1.35 system-ui,sans-serif}.kbd{display:inline-block;padding:2px 7px;border:1px solid #78908a;border-bottom-width:2px;border-radius:6px;background:#fff;font:600 12px system-ui,sans-serif}.button{appearance:none;border:0;border-radius:999px;background:var(--ink);color:white;padding:12px 18px;font:700 15px system-ui,sans-serif;cursor:pointer}.button.secondary{background:#dfe8df;color:var(--ink)}
+    #mapPanel,#journalPanel{position:fixed;inset:7vh 7vw;z-index:8;pointer-events:auto;padding:24px;border-radius:22px;background:rgba(249,246,236,.96);border:1px solid rgba(24,48,42,.25);box-shadow:0 24px 70px rgba(24,48,42,.26);overflow:auto}
+    .panelHead{display:flex;align-items:center;justify-content:space-between;gap:14px}.panelHead h2{font-size:32px;margin:0}.close{border:0;background:#e3eadf;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700}
+    #mapCanvas{display:block;width:100%;height:min(62vh,620px);margin-top:14px;border-radius:16px;background:#d9e6ce;border:1px solid rgba(24,48,42,.22)}
+    #journalEntries{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}.entry{padding:14px;border:1px solid rgba(24,48,42,.18);border-radius:14px;background:#fffdf6}.entry h3{margin:0 0 6px;font-size:18px}.entry p{margin:0;font:13px/1.45 system-ui,sans-serif;color:#3f514c}
+    #mobile{display:none;position:fixed;inset:auto 0 0 0;height:160px;z-index:7;pointer-events:none}.pad,.actionPad{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));display:grid;gap:6px;pointer-events:auto}.pad{left:16px;grid-template-columns:44px 44px 44px;grid-template-areas:". up ." "left down right"}.actionPad{right:16px;grid-template-columns:58px 58px}.touch{border:1px solid rgba(255,255,255,.55);background:rgba(24,48,42,.52);color:#fff;border-radius:14px;height:44px;font:700 16px system-ui,sans-serif;touch-action:none}.touch[data-k="KeyW"]{grid-area:up}.touch[data-k="KeyA"]{grid-area:left}.touch[data-k="KeyS"]{grid-area:down}.touch[data-k="KeyD"]{grid-area:right}
+    #credits{position:fixed;left:12px;bottom:10px;z-index:3;color:rgba(24,48,42,.62);font:11px system-ui,sans-serif;pointer-events:none;background:rgba(255,255,255,.42);padding:4px 7px;border-radius:8px}
+    @media(max-width:760px),(pointer:coarse){#mobile{display:block}.card .grid{grid-template-columns:1fr}#prompt{bottom:180px}#credits{display:none}#topbar{min-width:88vw;font-size:13px}}
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="start">
+    <div class="card">
+      <h1>Moominvalley Explorer</h1>
+      <p>A handcrafted, procedural fan prototype: walk from the tall round house to the garden, bridge, Snufkin’s camp, woods, jetty and Lonely Mountains; visit the house room by room; talk to the valley’s residents; and watch the valley quietly misbehave.</p>
+      <div class="grid">
+        <div><span class="kbd">W A S D</span> walk &nbsp; <span class="kbd">Shift</span> run</div>
+        <div><span class="kbd">Mouse</span> look &nbsp; <span class="kbd">Space</span> hop</div>
+        <div><span class="kbd">E</span> talk / use doors / inspect</div>
+        <div><span class="kbd">M</span> map &nbsp; <span class="kbd">J</span> journal</div>
+      </div>
+      <p><strong>Original geometry only.</strong> No artwork, audio, book text or commercial game assets are copied. The layout is a respectful, non-commercial prototype built from public descriptions and broad story landmarks.</p>
+      <button id="enter" class="button">Enter the valley</button>
+      <button id="calm" class="button secondary">Reduced-motion mode</button>
+    </div>
+  </div>
+  <div id="hud">
+    <div id="topbar"><strong id="place">Moominhouse meadow</strong><small id="weather">A mild spring afternoon</small></div>
+    <div id="crosshair"></div><div id="prompt"></div><div id="toast"></div>
+  </div>
+  <section id="mapPanel" class="hidden"><div class="panelHead"><h2>Valley map</h2><button class="close" data-close="mapPanel">Close</button></div><canvas id="mapCanvas" width="1200" height="760"></canvas></section>
+  <section id="journalPanel" class="hidden"><div class="panelHead"><h2>Field journal</h2><button class="close" data-close="journalPanel">Close</button></div><p>Landmarks and curiosities are recorded as you discover them.</p><div id="journalEntries"></div></section>
+  <div id="mobile"><div class="pad"><button class="touch" data-k="KeyW">▲</button><button class="touch" data-k="KeyA">◀</button><button class="touch" data-k="KeyS">▼</button><button class="touch" data-k="KeyD">▶</button></div><div class="actionPad"><button class="touch" id="touchE">Use</button><button class="touch" id="touchMap">Map</button></div></div>
+  <div id="credits">Unofficial fan prototype • procedural Three.js geometry • no copied art/audio/text</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xb9d5d8);
+    scene.fog = new THREE.FogExp2(0xb9d5d8, 0.0062);
+    const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.08, 2400);
+    camera.position.set(5, 1.7, 22);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    document.body.prepend(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xeaf8ff, 0x536245, 2.05); scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xfff1cb, 3.0); sun.position.set(-60, 95, 35); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left=-150;sun.shadow.camera.right=150;sun.shadow.camera.top=150;sun.shadow.camera.bottom=-150; scene.add(sun);
+
+    const world = new THREE.Group(); scene.add(world);
+    const interactables = [];
+    const animated = [];
+    const npcs = [];
+    const discovery = new Set();
+    const journal = new Map();
+    const keys = {};
+    let currentZone = 'valley';
+    let playerGround = 1.68;
+    let velocityY = 0;
+    let last = performance.now();
+    let reducedMotion = false;
+    let activeTarget = null;
+    let grokeCooldown = 0;
+
+    const C = { grass:0x87a96b, grass2:0x73925e, dirt:0x9d825f, bark:0x65513c, leaf:0x567c4e, leaf2:0x6d945b, water:0x6ca8bc, house:0x6f9eb1, trim:0xece5cc, roof:0xa94b44, wood:0x80633f, stone:0x8f9186, interior:0xece3c7, ink:0x263935 };
+    const mat = (color, rough=.85, metal=0) => new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
+    const toon = (color) => new THREE.MeshStandardMaterial({color,roughness:.95,metalness:0});
+    function mesh(geo, material, parent=world, cast=true, receive=true){const m=new THREE.Mesh(geo,material);m.castShadow=cast;m.receiveShadow=receive;parent.add(m);return m}
+    function box(w,h,d,color,parent=world){return mesh(new THREE.BoxGeometry(w,h,d),mat(color),parent)}
+    function cyl(rt,rb,h,seg,color,parent=world){return mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat(color),parent)}
+    function sphere(r,color,parent=world,ws=18,hs=12){return mesh(new THREE.SphereGeometry(r,ws,hs),toon(color),parent)}
+    function labelSprite(text,bg='#f7f0da',fg='#213730'){
+      const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');x.fillStyle=bg;x.roundRect(8,8,496,112,28);x.fill();x.strokeStyle='rgba(24,48,42,.45)';x.lineWidth=5;x.stroke();x.fillStyle=fg;x.font='bold 40px Georgia';x.textAlign='center';x.textBaseline='middle';x.fillText(text,256,66);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));s.scale.set(7.2,1.8,1);return s
+    }
+    function addInteract(obj,name,text,action,range=3.2){obj.userData.interact={name,text,action,range};interactables.push(obj);return obj}
+    function addJournal(id,title,text){if(!journal.has(id)){journal.set(id,{title,text});toast('Journal: '+title);renderJournal()}}
+    function toast(text){const host=document.getElementById('toast');const d=document.createElement('div');d.className='toast';d.textContent=text;host.appendChild(d);setTimeout(()=>d.remove(),4200)}
+    function placeGroup(name,x,z){const g=new THREE.Group();g.position.set(x,0,z);g.name=name;world.add(g);return g}
+
+    function flower(x,z,color=0xf5df74,s=1){const g=placeGroup('flower',x,z);const stem=cyl(.025,.03,.45*s,6,0x4d764d,g);stem.position.y=.22*s;for(let i=0;i<5;i++){const p=sphere(.09*s,color,g,10,6);p.scale.set(1.4,.55,1);const a=i*Math.PI*2/5;p.position.set(Math.cos(a)*.12*s,.48*s,Math.sin(a)*.12*s)}const c=sphere(.055*s,0xcf9b43,g,10,6);c.position.y=.48*s;return g}
+    function tree(x,z,s=1,leaf=C.leaf){const g=placeGroup('tree',x,z);const t=cyl(.22*s,.32*s,2.8*s,8,C.bark,g);t.position.y=1.4*s;for(let i=0;i<3;i++){const crown=mesh(new THREE.ConeGeometry((1.55-i*.23)*s,2.3*s,9),mat(leaf),g);crown.position.y=(2.5+i*.8)*s}return g}
+    function bush(x,z,s=1,color=0x6f935c){const g=placeGroup('bush',x,z);for(let i=0;i<5;i++){const b=sphere((.45+Math.random()*.25)*s,color,g,12,8);b.position.set((Math.random()-.5)*.8*s,.35*s+(Math.random()*.2*s),(Math.random()-.5)*.8*s)}return g}
+    function rock(x,z,s=1){const r=mesh(new THREE.DodecahedronGeometry(.6*s,0),mat(C.stone));r.position.set(x,.35*s,z);r.rotation.set(Math.random(),Math.random(),Math.random());r.scale.y=.55;return r}
+
+    function buildLandscape(){
+      const ground=mesh(new THREE.PlaneGeometry(1500,1500),mat(C.grass),world,false,true);ground.rotation.x=-Math.PI/2;ground.position.y=-.02;
+      const pathMat=mat(0xb49b72);const path=mesh(new THREE.PlaneGeometry(5,70),pathMat);path.rotation.x=-Math.PI/2;path.rotation.z=.07;path.position.set(2,.01,4);
+      for(let i=0;i<95;i++){const a=Math.random()*Math.PI*2;const r=14+Math.random()*120;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(z+26)<8&&x>-55&&x<55)continue;tree(x,z,.65+Math.random()*1.25,Math.random()>.5?C.leaf:C.leaf2)}
+      for(let i=0;i<70;i++){const x=(Math.random()-.5)*55,z=(Math.random()-.5)*48;flower(x,z,[0xf0d35c,0xe8b0bb,0xf5f0d6,0x9bbad8][i%4],.65+Math.random()*.65)}
+      for(let i=0;i<18;i++)rock(-80+Math.random()*170,-75+Math.random()*150,.5+Math.random()*1.4);
+      // Stream: a ribbon made of overlapping translucent segments.
+      const wm=new THREE.MeshPhysicalMaterial({color:C.water,transparent:true,opacity:.72,roughness:.18,metalness:0,transmission:.08});
+      for(let i=0;i<34;i++){const z=-110+i*6.6;const x=Math.sin(i*.32)*10-10;const seg=mesh(new THREE.PlaneGeometry(18+Math.sin(i*.4)*4,7.5),wm,world,false,true);seg.rotation.x=-Math.PI/2;seg.position.set(x,.025,z);seg.rotation.z=Math.sin(i*.34)*.13;animated.push({type:'water',obj:seg,seed:i})}
+      // River banks.
+      for(let i=0;i<26;i++){bush(-20+Math.sin(i*.4)*11,-105+i*8,.8+Math.random()*.5);bush(1+Math.sin(i*.4)*11,-105+i*8,.8+Math.random()*.5)}
+      // Distant Lonely Mountains.
+      for(let i=0;i<9;i++){const m=mesh(new THREE.ConeGeometry(18+Math.random()*13,42+Math.random()*34,7),mat(0x74827c));m.position.set(-105+i*25,21,-185-Math.abs(i-4)*4);m.scale.z=.75;const cap=mesh(new THREE.ConeGeometry(8+Math.random()*4,12,7),mat(0xd9e2db));cap.position.set(m.position.x,m.position.y+25,m.position.z);cap.scale.z=.75}
+      addLandmarkSign('Lonely Mountains',-12,-133);
+      // Sea/river mouth and beach near the jetty.
+      const sea=mesh(new THREE.PlaneGeometry(260,170),wm,world,false,true);sea.rotation.x=-Math.PI/2;sea.position.set(52,.015,-150);animated.push({type:'water',obj:sea,seed:99});
+      const beach=mesh(new THREE.PlaneGeometry(110,28),mat(0xd5bd8a),world,false,true);beach.rotation.x=-Math.PI/2;beach.position.set(32,.0,-106);beach.rotation.z=.12;
+    }
+
+    function addLandmarkSign(text,x,z){const post=cyl(.08,.1,1.4,8,C.wood);post.position.set(x,.7,z);const s=labelSprite(text);s.position.set(x,1.75,z);s.scale.multiplyScalar(.68);world.add(s);const proxy=new THREE.Object3D();proxy.position.set(x,1.1,z);world.add(proxy);addInteract(proxy,text,'Add this place to the field journal.',()=>addJournal('land-'+text,text,'A named place in the valley. Wander close enough to inspect its paths, props and residents.'),3.5)}
+
+    function buildBridge(){const g=placeGroup('bridge',-10,-36);for(let i=-5;i<=5;i++){const p=box(1.55,.16,3.6,C.wood,g);p.position.set(i*1.35,.8,0);p.rotation.z=Math.sin(i/5*Math.PI)*.05}for(const z of [-1.7,1.7]){const rail=box(16,.12,.12,0x6a4d31,g);rail.position.set(0,1.7,z);for(let i=-5;i<=5;i++){const post=box(.12,1.1,.12,0x6a4d31,g);post.position.set(i*1.35,1.25,z)}}const proxy=new THREE.Object3D();proxy.position.set(-10,1.1,-36);world.add(proxy);addInteract(proxy,'Wooden bridge','The familiar crossing over the river. Snufkin is often nearby in spring.',()=>addJournal('bridge','Bridge over the river','A wooden crossing near the house and Snufkin’s camp; in several stories the river is a route as much as a boundary.'),5)}
+
+    function windowFrame(parent,x,y,z,ry=0){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry;parent.add(g);const pane=box(1.45,1.85,.08,0xb9dce6,g);pane.material=new THREE.MeshPhysicalMaterial({color:0xb9dce6,transparent:true,opacity:.58,roughness:.12});const h=box(1.65,.1,.13,C.trim,g);const h2=h.clone();g.add(h2);h.position.y=.9;h2.position.y=-.9;const v=box(.1,1.9,.13,C.trim,g);return g}
+    function buildHouse(){
+      const h=placeGroup('Moominhouse',0,4);
+      const base=cyl(7.4,7.8,13.8,32,C.house,h);base.position.y=6.9;
+      const belt1=cyl(7.55,7.6,.28,32,C.trim,h);belt1.position.y=4.3;const belt2=cyl(7.48,7.53,.28,32,C.trim,h);belt2.position.y=8.7;const belt3=cyl(7.35,7.42,.28,32,C.trim,h);belt3.position.y=12.5;
+      const roof=mesh(new THREE.ConeGeometry(9.2,9.5,32),mat(C.roof),h);roof.position.y=18.5;const finial=mesh(new THREE.ConeGeometry(.38,2.3,12),mat(C.trim),h);finial.position.y=24.1;
+      const porch=box(6.8,.42,4.1,C.trim,h);porch.position.set(0,.2,8.4);for(const x of [-2.7,2.7]){const p=cyl(.18,.22,3.3,10,C.trim,h);p.position.set(x,1.8,10)}const porchRoof=mesh(new THREE.ConeGeometry(4.9,2.4,5),mat(C.roof),h);porchRoof.position.set(0,4.0,9.25);porchRoof.rotation.y=Math.PI/4;
+      const door=box(2.15,3.6,.24,0x77533b,h);door.position.set(0,2.0,7.75);addInteract(door,'Front door','Enter the Moominhouse.',()=>teleport(INTERIOR.saloon,'Salon — first floor'),4.1);
+      const knob=sphere(.11,0xd5b05e,h,10,8);knob.position.set(.62,2.0,7.92);
+      for(const y of [4.8,9.3,13.2]){windowFrame(h,-7.25,y,0,Math.PI/2);windowFrame(h,7.25,y,0,-Math.PI/2);windowFrame(h,0,y,-7.3,0)}
+      const roofWindow=box(2.3,2.2,.5,C.house,h);roofWindow.position.set(0,17.7,-6.0);roofWindow.rotation.x=-.28;windowFrame(roofWindow,0,0,.28,0);
+      const chimney=cyl(.5,.62,7.2,8,0x805c49,h);chimney.position.set(-4.6,16.7,1.1);chimney.rotation.z=-.06;
+      const woodShed=box(4,2.8,3.6,0x9a7954,h);woodShed.position.set(7.8,1.4,3.4);const shedRoof=mesh(new THREE.ConeGeometry(3.6,2.1,4),mat(C.roof),h);shedRoof.position.set(7.8,3.35,3.4);shedRoof.rotation.y=Math.PI/4;
+      const sign=labelSprite('Moominhouse');sign.position.set(0,3.5,13.2);sign.scale.multiplyScalar(.72);h.add(sign);
+      const proxy=new THREE.Object3D();proxy.position.set(0,1.4,13);h.add(proxy);addInteract(proxy,'Moominhouse','Tall, round, and expanded over time for family and guests.',()=>addJournal('house','Moominhouse','The valley’s tall round home, grown room by room to make space for family, visitors, stories and winter sleep.'),5);
+    }
+
+    function fenceLine(parent,x,z,w,d){for(let i=0;i<=w;i+=1.25){const p=box(.11,.9,.11,0xe7dec2,parent);p.position.set(x-w/2+i,.45,z)}const a=box(w,.09,.09,0xe7dec2,parent);a.position.set(x,.35,z);const b=a.clone();parent.add(b);b.position.y=.7}
+    function buildGarden(){const g=placeGroup('garden',17,10);fenceLine(g,0,-5,17,0);fenceLine(g,0,5,17,0);for(let z=-3.7;z<=3.7;z+=1.7){for(let x=-6.5;x<=6.5;x+=1.5){if(Math.random()>.25)flower(17+x,10+z,[0xf2d35d,0xedb6c4,0xf7f4d8,0xa8bfdf][Math.floor(Math.random()*4)],.65)}}const well=cyl(1.4,1.55,1.15,20,0x9b9a8e,g);well.position.set(5.4,.55,0);well.material=mat(0x9b9a8e);const rim=cyl(1.55,1.55,.2,20,0x777970,g);rim.position.set(5.4,1.12,0);const proxy=new THREE.Object3D();proxy.position.set(0,1,0);g.add(proxy);addInteract(proxy,'Moominmamma’s garden','Flowers, herbs, berries and the well beside the house.',()=>addJournal('garden','Moominmamma’s garden','A lived-in garden beside the house: flowers and useful plants share space without looking too tidy.'),6)}
+
+    function buildCamp(){const g=placeGroup('Snufkin camp',-28,-47);const tent=mesh(new THREE.ConeGeometry(4.2,4.2,3),mat(0x687551),g);tent.position.y=2.1;tent.rotation.y=Math.PI/6;const opening=mesh(new THREE.ConeGeometry(2.2,2.3,3),mat(0x26352b),g);opening.position.set(0,1.5,2.35);opening.scale.z=.2;const fireRing=[];for(let i=0;i<9;i++){const r=rock(-28+Math.cos(i/9*Math.PI*2)*1.2,-47+Math.sin(i/9*Math.PI*2)*1.2,.28);fireRing.push(r)}const fire=mesh(new THREE.ConeGeometry(.55,1.5,7),new THREE.MeshStandardMaterial({color:0xff9a3c,emissive:0xff6a20,emissiveIntensity:2}),g,false,false);fire.position.set(0,.8,0);animated.push({type:'fire',obj:fire,seed:12});const log=box(3,.45,.55,0x6a5036,g);log.position.set(3,.3,-1);log.rotation.y=.4;const proxy=new THREE.Object3D();proxy.position.set(0,1.2,0);g.add(proxy);addInteract(proxy,'Snufkin’s campsite','A small tent, a fire and just enough room for a tune.',()=>addJournal('camp','Snufkin’s campsite','A deliberately spare camp beyond the river: tent, fire, a log to sit on and little else.'),5)}
+
+    function buildJetty(){const g=placeGroup('jetty',45,-112);for(let i=0;i<9;i++){const p=box(2.2,.18,5.1,C.wood,g);p.position.set(i*2.05,.35,0);for(const z of [-2.2,2.2]){const post=cyl(.11,.13,2.4,8,0x5d4b38,g);post.position.set(i*2.05,-.2,z)}}const boat=mesh(new THREE.CylinderGeometry(0,1.4,6,4,1,false),mat(0x794b36),g);boat.rotation.z=Math.PI/2;boat.rotation.y=Math.PI/4;boat.scale.y=.4;boat.position.set(19,.3,-4);const proxy=new THREE.Object3D();proxy.position.set(10,1,0);g.add(proxy);addInteract(proxy,'Jetty','Look downriver toward the sea and the next great adventure.',()=>addJournal('jetty','Jetty and boat','A simple landing by the water, useful for departures that begin as errands and become adventures.'),5)}
+
+    function buildFillyjonkHouse(){const g=placeGroup('Fillyjonk house',74,-8);const body=box(9,8,7,0xb3a486,g);body.position.y=4;const roof=mesh(new THREE.ConeGeometry(7.1,5,4),mat(0x6e5748),g);roof.position.y=10;roof.rotation.y=Math.PI/4;for(const x of [-2.6,2.6])windowFrame(g,x,4,3.55,0);const door=box(1.8,3.2,.2,0x6d4937,g);door.position.set(0,1.8,3.55);const sign=labelSprite('Fillyjonk house');sign.position.set(0,9,5.2);sign.scale.multiplyScalar(.55);g.add(sign);addInteract(door,'Fillyjonk’s house','A neat house at the edge of the valley. The prototype keeps the interior private for now.',()=>addJournal('filly','Fillyjonk’s house','A more orderly-looking home away from the Moominhouse, visible across the meadow.'),4)}
+
+    function buildCave(){const g=placeGroup('mountain cave',-8,-159);for(let i=0;i<16;i++){const a=i/16*Math.PI*2;const r=rock(-8+Math.cos(a)*7,-159+Math.sin(a)*2.8,1.8+Math.random());r.position.y=1.8+Math.sin(a)*1.1}const tunnel=mesh(new THREE.CylinderGeometry(3.8,4.4,13,16,1,true),new THREE.MeshStandardMaterial({color:0x444a47,side:THREE.DoubleSide,roughness:1}),g);tunnel.rotation.x=Math.PI/2;tunnel.position.set(0,3,-4.5);const proxy=new THREE.Object3D();proxy.position.set(0,2,1);g.add(proxy);addInteract(proxy,'Cave beneath the mountains','A cool tunnel under the Lonely Mountains. The river route once led adventurers this way.',()=>addJournal('cave','Cave under the Lonely Mountains','A shadowy route under the mountains, echoing journeys where the river itself becomes a road.'),5)}
+
+    // Interior pocket world far from the valley.
+    const INTERIOR={saloon:new THREE.Vector3(1005,1.68,0),dining:new THREE.Vector3(1024,1.68,0),kitchen:new THREE.Vector3(1043,1.68,0),cellar:new THREE.Vector3(1062,1.68,0),floor2:new THREE.Vector3(1005,1.68,24),parents:new THREE.Vector3(1024,1.68,24),guest:new THREE.Vector3(1043,1.68,24),bunks:new THREE.Vector3(1062,1.68,24),floor3:new THREE.Vector3(1005,1.68,48),study:new THREE.Vector3(1024,1.68,48),upperguest:new THREE.Vector3(1043,1.68,48),reading:new THREE.Vector3(1062,1.68,48),roof:new THREE.Vector3(1024,1.68,72)};
+    function roomBox(name,cx,cz,color=0xeee6cf){const g=placeGroup(name,cx,cz);const floor=box(15,.25,15,0xb39169,g);floor.position.y=-.13;const ceil=box(15,.18,15,0xe7dfc9,g);ceil.position.y=6.2;for(const x of [-7.45,7.45]){const w=box(.18,6.3,15,color,g);w.position.set(x,3,0)}for(const z of [-7.45,7.45]){const w=box(15,6.3,.18,color,g);w.position.set(0,3,z)}return g}
+    function bed(g,x,z,color=0xbac6d8){const frame=box(4,.5,2.3,0x835f3f,g);frame.position.set(x,.45,z);const mattress=box(3.8,.45,2.1,0xf0ead8,g);mattress.position.set(x,.88,z);const blanket=box(2.3,.16,2.12,color,g);blanket.position.set(x+.72,1.14,z);const pillow=box(.75,.22,1.3,0xf6f1df,g);pillow.position.set(x-1.25,1.18,z)}
+    function shelf(g,x,z,ry=0){const s=box(2.7,4.4,.55,0x744f34,g);s.position.set(x,2.2,z);s.rotation.y=ry;for(let y=.65;y<4;y+=.72){const row=box(2.35,.11,.72,0x533921,g);row.position.set(x,y,z);row.rotation.y=ry}for(let i=0;i<12;i++){const b=box(.12+.08*Math.random(),.48+.2*Math.random(),.4,[0x9e564b,0x6f7f99,0x8b7d52,0x755b78][i%4],g);b.position.set(x-1+i*.2,.9+(i%4)*.72,z+(ry?0:.25));b.rotation.y=ry}}
+    function table(g,x,z,w=3,d=2,color=0x84613e){const top=box(w,.18,d,color,g);top.position.set(x,1.45,z);for(const dx of [-w/2+.25,w/2-.25])for(const dz of [-d/2+.25,d/2-.25]){const l=box(.18,1.45,.18,color,g);l.position.set(x+dx,.72,z+dz)}return top}
+    function fireplace(g,x,z,ry=0){const fp=box(3.5,3,1.1,0xa99d89,g);fp.position.set(x,1.5,z);fp.rotation.y=ry;const hole=box(1.8,1.35,.14,0x292723,g);hole.position.set(x,.8,z+(ry?0:.58));hole.rotation.y=ry;const glow=box(1.3,.55,.08,0xff8c4a,g);glow.material=new THREE.MeshStandardMaterial({color:0xff8c4a,emissive:0xff4d20,emissiveIntensity:1.5});glow.position.copy(hole.position);glow.position.y=.65}
+    function doorPortal(g,x,z,label,target,placeName,ry=0){const d=box(1.7,3.3,.2,0x6e4d36,g);d.position.set(x,1.75,z);d.rotation.y=ry;addInteract(d,label,'Pass through.',()=>teleport(target,placeName),3.1);return d}
+    function plaque(g,x,z,title,text){const p=box(2.8,1.2,.12,0xe9dfbf,g);p.position.set(x,1.7,z);addInteract(p,title,text,()=>{toast(title+': '+text);addJournal('obj-'+title,title,text)},3.1);return p}
+
+    function buildInteriors(){
+      // Salon
+      let g=roomBox('Salon',1005,0,0xeadfca);fireplace(g,-5,0,Math.PI/2);const t=table(g,0,0,3,2);const cloth=box(2.7,.08,1.7,0xc98f94,g);cloth.position.set(0,1.58,0);const sofa=box(4,1.1,1.5,0x839c92,g);sofa.position.set(0,.8,-5.3);const back=box(4,1.5,.35,0x839c92,g);back.position.set(0,1.4,-5.95);const clock=box(1.1,4.7,.75,0x624734,g);clock.position.set(5.3,2.35,-4.8);const face=cyl(.42,.42,.08,20,0xece2c8,g);face.rotation.x=Math.PI/2;face.position.set(5.3,3.3,-4.39);for(let i=0;i<6;i++){const plate=cyl(.26,.26,.07,18,0xd8e1d7,g);plate.rotation.x=Math.PI/2;plate.position.set(-5.6,2+i*.45,.66)}doorPortal(g,7.28,0,'Dining room',INTERIOR.dining,'Dining room',Math.PI/2);doorPortal(g,-7.28,4.2,'Veranda door',new THREE.Vector3(0,1.68,15),'Moominhouse veranda',Math.PI/2);const stairs=box(3,.45,5,0x8c6a49,g);stairs.position.set(4.2,.25,4.5);addInteract(stairs,'Stairs up','Climb to the second-floor landing.',()=>teleport(INTERIOR.floor2,'Second-floor landing'),4);plaque(g,-2.8,7.25,'Grandmother’s chandelier','A family keepsake above the salon table, remembered in descriptions of the house.');
+      // Dining
+      g=roomBox('Dining room',1024,0,0xdce1bc);const dt=table(g,0,0,7,2.8);const cloth2=box(6.6,.08,2.5,0xd7965e,g);cloth2.position.set(0,1.58,0);for(let x=-2.5;x<=2.5;x+=1.7){const c=box(.75,1,.75,0x6f543a,g);c.position.set(x,.6,2.3)}const stove=box(2.2,2.8,1.4,0x3e4542,g);stove.position.set(-5.2,1.4,-4.8);const cab=box(2.8,3.6,.8,0x5f89a0,g);cab.position.set(5,1.8,-5);doorPortal(g,-7.28,0,'Salon',INTERIOR.saloon,'Salon',Math.PI/2);doorPortal(g,7.28,0,'Kitchen',INTERIOR.kitchen,'Kitchen',Math.PI/2);plaque(g,0,-7.25,'Family table','A long table for meals, guests and plans that grow larger while everyone is talking.');
+      // Kitchen
+      g=roomBox('Kitchen',1043,0,0xe8d5b6);table(g,0,0,3.5,2.6);for(let x=-5;x<=5;x+=1.4){const counter=box(1.3,1.7,1.4,0x9d7e5d,g);counter.position.set(x,.85,-5.7)}const kstove=box(2.4,2.7,1.7,0x434946,g);kstove.position.set(-5.1,1.35,4.8);const sink=box(2.2,1.8,1.4,0xb8b5a6,g);sink.position.set(4.8,.9,4.9);const churn=cyl(.7,.85,1.6,14,0x8a6b44,g);churn.position.set(5.2,.8,-2.7);for(let i=0;i<6;i++){const p=cyl(.3,.3,.06,18,[0xe1d7c7,0xb7ccd0,0xe1d7c7][i%3],g);p.rotation.x=Math.PI/2;p.position.set(-1.6+i*.62,3.6,-6.45)}doorPortal(g,-7.28,0,'Dining room',INTERIOR.dining,'Dining room',Math.PI/2);const hatch=box(2.5,.12,2.5,0x76543c,g);hatch.position.set(3.8,.08,1.2);addInteract(hatch,'Cellar hatch','Climb down to the cellar.',()=>teleport(INTERIOR.cellar,'Cellar'),3.2);plaque(g,0,7.25,'Kitchen shelf','Plates, jars and useful odds-and-ends: the practical heart of the house.');
+      // Cellar
+      g=roomBox('Cellar',1062,0,0xaba28d);for(let z=-4.8;z<=4.8;z+=2.4)shelf(g,-5.6,z,Math.PI/2);for(let i=0;i<14;i++){const jar=cyl(.22,.28,.55,12,[0xa64e49,0xd2a443,0x627d50][i%3],g);jar.position.set((i%5)*.7-1.4,.3+Math.floor(i/5)*.65,-4.8)}const hat=mesh(new THREE.CylinderGeometry(1.2,1.5,1.1,24),mat(0x2b2927),g);hat.position.set(2.4,.55,1.4);const brim=cyl(2,2,.15,28,0x2b2927,g);brim.position.set(2.4,.1,1.4);addInteract(hat,'Suspicious top hat','Probably best not to throw anything into it.',()=>{toast('The hat gives no explanation. The cellar seems wiser than you.');addJournal('hat','Suspicious top hat','A cellar curiosity associated with transformations in Finn Family Moomintroll. It is intentionally inert in this prototype.')},3.2);doorPortal(g,-7.28,0,'Back to kitchen',INTERIOR.kitchen,'Kitchen',Math.PI/2);
+      // second landing
+      g=roomBox('Second-floor landing',1005,24,0xe7ddc9);const runner=box(10,.05,2,0x7f8d86,g);runner.position.set(0,.14,0);doorPortal(g,7.28,-4.6,'Parents’ bedroom',INTERIOR.parents,'Moominpappa & Moominmamma’s bedroom',Math.PI/2);doorPortal(g,7.28,0,'Adult guest room',INTERIOR.guest,'Guest room',Math.PI/2);doorPortal(g,7.28,4.6,'Bunk guest room',INTERIOR.bunks,'Children’s guest room',Math.PI/2);const down=box(3,.35,4,0x8c6a49,g);down.position.set(-4.5,.22,-4);addInteract(down,'Stairs down','Return to the salon.',()=>teleport(INTERIOR.saloon,'Salon — first floor'),4);const up=box(3,.35,4,0x8c6a49,g);up.position.set(-4.5,.22,4);addInteract(up,'Stairs up','Go to the third floor.',()=>teleport(INTERIOR.floor3,'Third-floor landing'),4);
+      // parents
+      g=roomBox('Parents bedroom',1024,24,0xe5dccf);bed(g,-2.5,-2.8,0xa9b38f);bed(g,2.5,-2.8,0xb7a1a6);const vanity=table(g,0,4.8,3,1.2);const mirror=cyl(1,1,.08,28,0xc8d5d3,g);mirror.rotation.x=Math.PI/2;mirror.position.set(0,3.3,5.45);shelf(g,5.5,0,Math.PI/2);doorPortal(g,-7.28,0,'Landing',INTERIOR.floor2,'Second-floor landing',Math.PI/2);plaque(g,0,-7.25,'Separate beds','The parents’ room is simple: separate beds, nightstands, a vanity and books.');
+      // guest
+      g=roomBox('Adult guest room',1043,24,0xdde1d4);bed(g,0,-1,0x9c8470);const dresser=box(3,2,1.2,0x76553a,g);dresser.position.set(4.8,1,-4.7);const basin=cyl(.55,.7,.25,18,0xcbd6d2,g);basin.position.set(-4.5,1.45,4.8);doorPortal(g,-7.28,0,'Landing',INTERIOR.floor2,'Second-floor landing',Math.PI/2);plaque(g,0,7.25,'Guest room','The house keeps spare rooms because visitors have a habit of becoming residents for a while.');
+      // bunks
+      g=roomBox('Bunk guest room',1062,24,0xd7e4ca);const bf=box(4,.35,2.3,0x6d8d5a,g);bf.position.set(-1,1,-3);const bf2=bf.clone();g.add(bf2);bf2.position.y=3;for(const x of [-2.8,.8]){const post=box(.18,3.7,.18,0x6d8d5a,g);post.position.set(x,1.85,-3)}const cradle=box(2,.7,1.2,0x7896a2,g);cradle.position.set(3.5,.7,-3);fireplace(g,5,3.8,Math.PI/2);shelf(g,-5.4,3.8,Math.PI/2);doorPortal(g,-7.28,0,'Landing',INTERIOR.floor2,'Second-floor landing',Math.PI/2);plaque(g,0,7.25,'Bunk room','A shared room for younger guests, with a bunk, cradle, shelf and fireplace.');
+      // third landing
+      g=roomBox('Third-floor landing',1005,48,0xe1d7c2);doorPortal(g,7.28,-4.6,'Moominpappa’s study',INTERIOR.study,'Moominpappa’s study',Math.PI/2);doorPortal(g,7.28,0,'Upper guest room',INTERIOR.upperguest,'Upper guest room',Math.PI/2);doorPortal(g,7.28,4.6,'Reading room',INTERIOR.reading,'Reading room',Math.PI/2);const dwn=box(3,.35,4,0x8c6a49,g);dwn.position.set(-4.5,.22,-4);addInteract(dwn,'Stairs down','Go to the second floor.',()=>teleport(INTERIOR.floor2,'Second-floor landing'),4);const rup=box(3,.35,4,0x8c6a49,g);rup.position.set(-4.5,.22,4);addInteract(rup,'Attic stair','Climb to Moomintroll’s roof room.',()=>teleport(INTERIOR.roof,'Moomintroll’s roof room'),4);
+      // study
+      g=roomBox('Moominpappa study',1024,48,0xe4d4b8);shelf(g,-5.5,-2,Math.PI/2);shelf(g,-5.5,2,Math.PI/2);fireplace(g,5,0,Math.PI/2);const desk=table(g,0,-1,4,2);const paper=box(1.5,.04,1.1,0xf3eedc,g);paper.position.set(-.5,1.58,-1);const hat2=mesh(new THREE.CylinderGeometry(.65,.82,.75,20),mat(0x22201f),g);hat2.position.set(1.1,2.05,-1);const brim2=cyl(1.05,1.05,.12,24,0x22201f,g);brim2.position.set(1.1,1.66,-1);doorPortal(g,-7.28,0,'Landing',INTERIOR.floor3,'Third-floor landing',Math.PI/2);plaque(g,0,7.25,'Memoir desk','A desk by the window for writing adventures down after they have had time to improve in memory.');
+      // upper guest
+      g=roomBox('Upper guest',1043,48,0xe8ddca);bed(g,0,-1,0xd0b45f);const wardrobe=box(2.5,4.5,1.1,0x7a563d,g);wardrobe.position.set(5,2.25,-4.7);doorPortal(g,-7.28,0,'Landing',INTERIOR.floor3,'Third-floor landing',Math.PI/2);plaque(g,0,7.25,'Upper guest room','Another spare room: the house has accumulated rooms because people keep arriving.');
+      // reading
+      g=roomBox('Reading room',1062,48,0xd8dfd2);for(const z of [-4.5,0,4.5])shelf(g,-5.5,z,Math.PI/2);const rt=table(g,1,0,4,2.5);for(let i=0;i<5;i++){const b=box(.5,.12,.75,[0x8f5850,0x687d8e,0x86784d][i%3],g);b.position.set(-.6+i*.55,1.66,0)}doorPortal(g,-7.28,0,'Landing',INTERIOR.floor3,'Third-floor landing',Math.PI/2);plaque(g,0,7.25,'Old editions shelf','A playful callback shelf: titles and themes are referenced without reproducing book text or illustrations.');
+      // roof room
+      g=roomBox('Moomintroll roof room',1024,72,0xe4dfcf);bed(g,-2,-2,0x8aa6b8);const desk2=table(g,3,-2,3,1.6);shelf(g,-5,2,Math.PI/2);const ladder=box(1.2,.25,5,0x805d3c,g);ladder.position.set(4.8,.2,4.2);addInteract(ladder,'Roof-window ladder','Climb out to the exterior beside the house.',()=>teleport(new THREE.Vector3(3,1.68,13),'Moominhouse veranda'),4);plaque(g,0,7.25,'Roof window','Moomintroll’s room sits high under the roof, with a direct route outside.');
+    }
+
+    function character(name,color,accent=0x333333,scale=1){const g=new THREE.Group();g.name=name;const body=sphere(.78*scale,color,g,20,14);body.scale.set(.85,1.15,.85);body.position.y=1.2*scale;const head=sphere(.62*scale,color,g,20,14);head.position.set(0,2.2*scale,0);const muzzle=sphere(.48*scale,color,g,18,12);muzzle.scale.set(1.05,.62,1.3);muzzle.position.set(0,2.05*scale,.5*scale);for(const x of [-.22,.22]){const eye=sphere(.065*scale,accent,g,10,8);eye.position.set(x,2.42*scale,.57*scale)}for(const x of [-.22,.22]){const ear=mesh(new THREE.ConeGeometry(.16*scale,.55*scale,10),toon(color),g);ear.position.set(x,2.78*scale,.05);ear.rotation.z=x<0?.25:-.25}const tail=mesh(new THREE.TorusGeometry(.42*scale,.08*scale,8,16,Math.PI*1.25),toon(color),g);tail.position.set(.62*scale,1.2*scale,-.15*scale);tail.rotation.y=Math.PI/2;return g}
+    function littleMy(){const g=new THREE.Group();const body=mesh(new THREE.ConeGeometry(.55,1.5,14),toon(0xb4493f),g);body.position.y=.8;const head=sphere(.42,0xe0b89b,g);head.position.y=1.85;const bun=sphere(.2,0x7f4b32,g);bun.position.y=2.35;for(const x of [-.13,.13]){const e=sphere(.045,0x2a2523,g);e.position.set(x,1.95,.37)}return g}
+    function snufkin(){const g=new THREE.Group();const coat=mesh(new THREE.ConeGeometry(.72,2,16),toon(0x55704f),g);coat.position.y=1;const head=sphere(.45,0xe0b994,g);head.position.y=2.15;const hat=mesh(new THREE.ConeGeometry(.72,1.25,18),toon(0x4f6648),g);hat.position.y=2.95;hat.rotation.z=-.12;const brim=cyl(.9,.9,.08,22,0x4f6648,g);brim.position.y=2.55;return g}
+    function groke(){const g=new THREE.Group();const body=mesh(new THREE.ConeGeometry(1.55,4.3,24),new THREE.MeshStandardMaterial({color:0x30333e,roughness:1}),g);body.position.y=2.1;const face=sphere(.85,0x3c4050,g);face.position.set(0,3.25,.48);for(const x of [-.28,.28]){const e=sphere(.095,0xcdeeff,g);e.material.emissive=new THREE.Color(0x82c7e8);e.material.emissiveIntensity=2;e.position.set(x,3.48,1.12)}return g}
+    function npc(name,obj,pos,dialogue,route,speed=.8){obj.position.copy(pos);world.add(obj);const data={name,obj,dialogue,route:route||[],routeIndex:0,speed,phase:Math.random()*10,reverse:false};npcs.push(data);addInteract(obj,name,'Talk to '+name+'.',()=>{const line=dialogue[Math.floor(Math.random()*dialogue.length)];toast(name+': '+line);addJournal('npc-'+name,name,'A resident of the valley. Talk again later; their line may change.')},3.6);return data}
+
+    function buildNPCs(){
+      npc('Moomintroll',character('Moomintroll',0xf1efe4),new THREE.Vector3(9,0,19),['I was just going to see whether Snufkin is back at the bridge.','There is always more valley than you remember.','The roof window is faster than the stairs, but do not tell Mamma.'],[[9,19],[15,8],[-2,-17],[-11,-32]],1.05);
+      npc('Moominmamma',character('Moominmamma',0xf2eee2,0x2b2b2b,.95),new THREE.Vector3(15,0,10),['Have something to eat before you set off anywhere dramatic.','The garden does not mind a little disorder.','Guests are easier to welcome than to count.'],[[15,10],[20,14],[12,5],[6,11]],.55);
+      const pappa=character('Moominpappa',0xf0eee2);const phat=mesh(new THREE.CylinderGeometry(.5,.68,.62,18),mat(0x252321),pappa);phat.position.set(0,3.13,0);const pbrim=cyl(.86,.86,.11,22,0x252321,pappa);pbrim.position.y=2.8;npc('Moominpappa',pappa,new THREE.Vector3(-1,0,18),['A good expedition should have a purpose. It need not keep it.','I have been meaning to write that down.','The study is upstairs. Everything important sounds better from there.'],[[-1,18],[-5,12],[4,12]],.48);
+      npc('Little My',littleMy(),new THREE.Vector3(20,0,4),['I know a shortcut. I am not telling you.','Sniff took something again. He calls it finding.','If a door is shut, it is probably more interesting on the other side.'],[[20,4],[12,-3],[25,10],[8,6]],1.35);
+      const sniff=character('Sniff',0x9b7457,0x222222,.83);const sd=npc('Sniff',sniff,new THREE.Vector3(-18,0,-12),['I was not stealing it. I was rescuing it from being unowned.','Have you seen anything shiny? For research.','Running backwards is useful when you want to leave while keeping an eye on treasure.'],[[-18,-12],[-8,-23],[-22,-35],[-3,-6],[18,-4]],1.3);sd.isSniff=true;sd.stealTimer=6;
+      npc('Snorkmaiden',character('Snorkmaiden',0xf2eee4,0x272727,.92),new THREE.Vector3(25,0,18),['I think the flowers are better when they are not all the same height.','A proper adventure can still have a nice ribbon.','Have you seen Moomintroll? He said he would only be a minute.'],[[25,18],[18,6],[7,18]],.72);
+      npc('Snufkin',snufkin(),new THREE.Vector3(-28,0,-43),['The bridge sounds different before sunrise.','You do not need much for a camp if you are leaving again soon.','A tune gets worse if you chase it. Better to walk until it catches up.'],[[-28,-43],[-19,-39],[-35,-54]],.35);
+      npc('Hemulen',character('Hemulen',0x9d7f8d,0x222222,.92),new THREE.Vector3(38,0,-22),['Please do not step on that specimen. I have not named it yet.','The valley contains far too many interesting plants. It is exhausting.','I had a list, but now I have a longer list.'],[[38,-22],[45,-17],[42,-31]],.42);
+      const gr=groke();const gd=npc('The Groke',gr,new THREE.Vector3(-65,0,-118),['The air around her is too cold for conversation.'],[[-65,-118],[-45,-95],[-25,-73],[-15,-52],[-6,-41],[-8,-74],[-35,-110],[-70,-145]],.42);gd.isGroke=true;
+    }
+
+    function shinyTreasures(){for(let i=0;i<11;i++){const gem=mesh(new THREE.OctahedronGeometry(.22),new THREE.MeshStandardMaterial({color:[0xe2b64e,0x90b7c8,0xc98b8b][i%3],metalness:.25,roughness:.35}));gem.position.set(-30+Math.random()*65,.3, -35+Math.random()*70);gem.userData.treasure=true;addInteract(gem,'Shiny trinket','A small glittering object. Sniff may decide it belongs to him.',()=>toast('You leave the trinket where it is. For now.'),2.6)} }
+
+    function teleport(v,place){controls.unlock();camera.position.copy(v);currentZone=v.x>900?'house':'valley';playerGround=v.y;document.getElementById('place').textContent=place;toast(place);setTimeout(()=>{if(document.getElementById('start').classList.contains('hidden'))renderer.domElement.requestPointerLock?.()},100)}
+
+    const controls=new PointerLockControls(camera,document.body);
+    document.getElementById('enter').addEventListener('click',()=>{document.getElementById('start').classList.add('hidden');controls.lock();toast('Walk toward the house, bridge or any named place. Press E when the prompt appears.')});
+    document.getElementById('calm').addEventListener('click',()=>{reducedMotion=!reducedMotion;document.getElementById('calm').textContent=reducedMotion?'Reduced motion: on':'Reduced-motion mode';toast(reducedMotion?'Reduced motion enabled':'Reduced motion disabled')});
+    renderer.domElement.addEventListener('click',()=>{if(document.getElementById('start').classList.contains('hidden')&&!panelOpen())controls.lock()});
+    window.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')interact();if(e.code==='KeyM')togglePanel('mapPanel');if(e.code==='KeyJ')togglePanel('journalPanel')});
+    window.addEventListener('keyup',e=>keys[e.code]=false);
+    document.querySelectorAll('.close').forEach(b=>b.addEventListener('click',()=>togglePanel(b.dataset.close,false)));
+    document.querySelectorAll('.touch[data-k]').forEach(b=>{const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+    document.getElementById('touchE').addEventListener('click',interact);document.getElementById('touchMap').addEventListener('click',()=>togglePanel('mapPanel'));
+    function panelOpen(){return !document.getElementById('mapPanel').classList.contains('hidden')||!document.getElementById('journalPanel').classList.contains('hidden')}
+    function togglePanel(id,force){const p=document.getElementById(id);const open=force===undefined?p.classList.contains('hidden'):force;if(open){p.classList.remove('hidden');controls.unlock();if(id==='mapPanel')drawMap()}else{p.classList.add('hidden');if(!panelOpen()&&document.getElementById('start').classList.contains('hidden'))controls.lock()}}
+
+    function interact(){if(activeTarget&&activeTarget.userData.interact){activeTarget.userData.interact.action()}}
+    function updateInteraction(){let best=null,bestD=999;for(const o of interactables){const wp=new THREE.Vector3();o.getWorldPosition(wp);const d=wp.distanceTo(camera.position);const r=o.userData.interact?.range||3;if(d<r&&d<bestD){best=o;bestD=d}}activeTarget=best;const p=document.getElementById('prompt');if(best){p.textContent='E — '+best.userData.interact.name+' · '+best.userData.interact.text;p.classList.add('show')}else p.classList.remove('show')}
+
+    function updatePlayer(dt){if(panelOpen())return;const speed=(keys.ShiftLeft||keys.ShiftRight)?9.2:5.1;let f=(keys.KeyW?1:0)-(keys.KeyS?1:0),r=(keys.KeyD?1:0)-(keys.KeyA?1:0);if(f||r){const len=Math.hypot(f,r);f/=len;r/=len;controls.moveForward(f*speed*dt);controls.moveRight(r*speed*dt)}if(keys.Space&&Math.abs(camera.position.y-playerGround)<.04)velocityY=5.5;velocityY-=14*dt;camera.position.y+=velocityY*dt;if(camera.position.y<playerGround){camera.position.y=playerGround;velocityY=0}if(currentZone==='valley'){camera.position.x=THREE.MathUtils.clamp(camera.position.x,-160,170);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-190,130)} }
+
+    function updateNPCs(dt,time){for(const n of npcs){if(!n.route.length)continue;const pt=n.route[n.routeIndex];const target=new THREE.Vector3(pt[0],0,pt[1]);const pos=n.obj.position;const dx=target.x-pos.x,dz=target.z-pos.z;const dist=Math.hypot(dx,dz);if(dist<1.2){n.routeIndex=(n.routeIndex+1)%n.route.length;if(n.isSniff&&Math.random()<.45){n.reverse=!n.reverse;toast('Sniff '+(n.reverse?'starts running backwards.':'turns around as if nothing happened.'))}}else{let sp=n.speed;if(n.isSniff)sp*=1.15+Math.sin(time*.001)*.3;const vx=dx/dist*sp*dt,vz=dz/dist*sp*dt;pos.x+=vx;pos.z+=vz;const ang=Math.atan2(dx,dz)+(n.reverse?Math.PI:0);n.obj.rotation.y=ang;n.obj.position.y=Math.sin(time*.004+n.phase)*.05}if(n.isSniff){n.stealTimer-=dt;if(n.stealTimer<0){n.stealTimer=8+Math.random()*11;const treasure=interactables.filter(o=>o.userData.treasure&&o.visible).sort((a,b)=>a.position.distanceTo(n.obj.position)-b.position.distanceTo(n.obj.position))[0];if(treasure&&treasure.position.distanceTo(n.obj.position)<15){treasure.visible=false;toast('Sniff has quietly “found” a shiny trinket.');setTimeout(()=>{treasure.visible=true;treasure.position.copy(n.obj.position);treasure.position.x+=2;treasure.position.y=.3;toast('Sniff drops the trinket and runs off.')},9000)}}}if(n.isGroke&&!reducedMotion){grokeCooldown-=dt;if(grokeCooldown<=0){grokeCooldown=.8;icePatch(n.obj.position.x,n.obj.position.z)}const d=n.obj.position.distanceTo(camera.position);renderer.domElement.style.filter=d<15?'saturate(.7) hue-rotate(8deg) brightness(.92)':'none'}}}
+    function icePatch(x,z){const m=mesh(new THREE.CircleGeometry(1.3+Math.random()*1.1,20),new THREE.MeshPhysicalMaterial({color:0xc9edf1,transparent:true,opacity:.52,roughness:.25}),world,false,true);m.rotation.x=-Math.PI/2;m.position.set(x,.04,z);setTimeout(()=>{const start=performance.now();function fade(){const t=(performance.now()-start)/9000;m.material.opacity=.52*(1-t);if(t<1)requestAnimationFrame(fade);else world.remove(m)}fade()},6000)}
+
+    function updateAnimated(time){for(const a of animated){if(a.type==='water'&&!reducedMotion)a.obj.position.y=.03+Math.sin(time*.001+a.seed)*.018;if(a.type==='fire'){const s=1+Math.sin(time*.012+a.seed)*.13;a.obj.scale.set(s,1+.12*Math.sin(time*.018),s)}}const day=(Math.sin(time*.000035)+1)/2;sun.intensity=1.9+day*1.3;hemi.intensity=1.45+day*.7;document.getElementById('weather').textContent=day>.62?'A bright spring afternoon':day>.3?'Soft evening light':'Blue hour settling over the valley'}
+
+    const mapPoints=[['Moominhouse',0,4],['Garden',17,10],['Bridge',-10,-36],['Snufkin camp',-28,-47],['Fillyjonk house',74,-8],['Jetty',45,-112],['Cave',-8,-159],['Lonely Mountains',-12,-180]];
+    function drawMap(){const c=document.getElementById('mapCanvas'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.fillStyle='#d8e6ce';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#78a9b8';x.lineWidth=34;x.beginPath();for(let i=0;i<34;i++){const z=-110+i*6.6,wx=Math.sin(i*.32)*10-10;const p=mapToCanvas(wx,z,c);if(i===0)x.moveTo(p.x,p.y);else x.lineTo(p.x,p.y)}x.stroke();x.fillStyle='#6d8d59';for(let i=0;i<120;i++){const px=(i*97)%c.width,py=(i*53)%c.height;x.beginPath();x.arc(px,py,3+(i%4),0,Math.PI*2);x.fill()}for(const p of mapPoints){const q=mapToCanvas(p[1],p[2],c);x.fillStyle='#f9f4e5';x.strokeStyle='#29443b';x.lineWidth=3;x.beginPath();x.arc(q.x,q.y,10,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='#29443b';x.font='bold 22px Georgia';x.fillText(p[0],q.x+16,q.y+7)}if(currentZone==='valley'){const q=mapToCanvas(camera.position.x,camera.position.z,c);x.fillStyle='#b14f47';x.beginPath();x.arc(q.x,q.y,9,0,Math.PI*2);x.fill();x.font='bold 18px system-ui';x.fillText('You',q.x+14,q.y-10)}else{x.fillStyle='#29443b';x.font='bold 24px Georgia';x.fillText('You are inside Moominhouse',34,42)}}
+    function mapToCanvas(wx,wz,c){return{x:(wx+170)/340*c.width,y:(wz+190)/320*c.height}}
+    function renderJournal(){const host=document.getElementById('journalEntries');host.innerHTML='';for(const [,e] of journal){const d=document.createElement('article');d.className='entry';const h=document.createElement('h3');h.textContent=e.title;const p=document.createElement('p');p.textContent=e.text;d.append(h,p);host.appendChild(d)}}
+
+    function discoverNearby(){for(const p of mapPoints){const id=p[0];if(discovery.has(id)||currentZone!=='valley')continue;const d=Math.hypot(camera.position.x-p[1],camera.position.z-p[2]);if(d<18){discovery.add(id);toast('Discovered: '+id);addJournal('discover-'+id,id,'You reached this landmark while exploring the valley.')}}}
+
+    buildLandscape();buildBridge();buildHouse();buildGarden();buildCamp();buildJetty();buildFillyjonkHouse();buildCave();buildInteriors();shinyTreasures();buildNPCs();
+    addJournal('welcome','A valley made for wandering','This prototype uses procedural geometry and paraphrased public descriptions. It is designed for exploration rather than exact reproduction of any single adaptation.');
+
+    function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.04);last=now;updatePlayer(dt);updateNPCs(dt,now);updateAnimated(now);updateInteraction();discoverNearby();renderer.render(scene,camera)}requestAnimationFrame(animate);
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+  </script>
+</body>
+</html>
