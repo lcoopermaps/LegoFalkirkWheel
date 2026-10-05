@@ -61,3 +61,8 @@ See [REFERENCE_NOTES.md](REFERENCE_NOTES.md) for the exact research notes used i
 ## Repository state
 
 First playable build commit: `1b0e684c37fbf59d0fe68d65c1020936edf5cd1f`.
+
+
+## Live deployment
+
+A GitHub Pages workflow is included at `.github/workflows/pages.yml`. Once Pages is enabled with **Settings → Pages → Source: GitHub Actions**, every push to `main` publishes this static site.
